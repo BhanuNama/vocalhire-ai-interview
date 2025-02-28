@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -10,8 +9,11 @@ import {
   Volume2,
   ScreenShare,
   RefreshCw,
+  Play,
+  Pause,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
 interface SystemCheckResult {
   camera: "pending" | "success" | "error";
@@ -29,8 +31,95 @@ const InterviewPrep = ({ onReady }: { onReady: () => void }) => {
   });
   const [isChecking, setIsChecking] = useState(false);
   const [checkProgress, setCheckProgress] = useState(0);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  
+  const testAudioSrc = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
 
-  const runSystemCheck = () => {
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const testCamera = async (): Promise<boolean> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+      
+      streamRef.current = stream;
+      return true;
+    } catch (error) {
+      console.error("Camera access error:", error);
+      return false;
+    }
+  };
+
+  const testMicrophone = async (): Promise<boolean> => {
+    try {
+      if (streamRef.current && streamRef.current.getAudioTracks().length > 0) {
+        return true;
+      }
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      
+      if (streamRef.current) {
+        stream.getAudioTracks().forEach(track => {
+          streamRef.current?.addTrack(track);
+        });
+      } else {
+        streamRef.current = stream;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Microphone access error:", error);
+      return false;
+    }
+  };
+
+  const testSpeaker = async (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (audioRef.current) {
+        audioRef.current.volume = 0.3;
+        audioRef.current.onended = () => resolve(true);
+        audioRef.current.onerror = () => resolve(false);
+        
+        audioRef.current.play().catch((error) => {
+          console.error("Speaker test error:", error);
+          resolve(false);
+        });
+      } else {
+        resolve(false);
+      }
+    });
+  };
+
+  const testConnection = async (): Promise<boolean> => {
+    try {
+      const response = await fetch('https://www.google.com', { 
+        mode: 'no-cors',
+        cache: 'no-cache'
+      });
+      return true;
+    } catch (error) {
+      console.error("Connection test error:", error);
+      return false;
+    }
+  };
+
+  const runSystemCheck = async () => {
     setIsChecking(true);
     setCheckProgress(0);
     setSystemCheck({
@@ -40,38 +129,32 @@ const InterviewPrep = ({ onReady }: { onReady: () => void }) => {
       connection: "pending",
     });
 
-    // Simulate system check
-    const interval = setInterval(() => {
-      setCheckProgress((prev) => {
-        const newProgress = prev + 5;
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          setIsChecking(false);
-          return 100;
-        }
-        return newProgress;
-      });
-    }, 150);
-
-    // Simulate camera check
-    setTimeout(() => {
-      setSystemCheck((prev) => ({ ...prev, camera: "success" }));
-    }, 1000);
-
-    // Simulate microphone check
-    setTimeout(() => {
-      setSystemCheck((prev) => ({ ...prev, microphone: "success" }));
-    }, 2000);
-
-    // Simulate speaker check
-    setTimeout(() => {
-      setSystemCheck((prev) => ({ ...prev, speaker: "success" }));
-    }, 3000);
-
-    // Simulate connection check
-    setTimeout(() => {
-      setSystemCheck((prev) => ({ ...prev, connection: "success" }));
-    }, 4000);
+    setCheckProgress(10);
+    const connectionResult = await testConnection();
+    setSystemCheck((prev) => ({ ...prev, connection: connectionResult ? "success" : "error" }));
+    
+    setCheckProgress(30);
+    const cameraResult = await testCamera();
+    setSystemCheck((prev) => ({ ...prev, camera: cameraResult ? "success" : "error" }));
+    
+    setCheckProgress(60);
+    const microphoneResult = await testMicrophone();
+    setSystemCheck((prev) => ({ ...prev, microphone: microphoneResult ? "success" : "error" }));
+    
+    setCheckProgress(80);
+    const speakerResult = await testSpeaker();
+    setSystemCheck((prev) => ({ ...prev, speaker: speakerResult ? "success" : "error" }));
+    
+    setCheckProgress(100);
+    setIsChecking(false);
+    
+    const allSuccess = cameraResult && microphoneResult && speakerResult && connectionResult;
+    
+    if (allSuccess) {
+      toast.success("All systems are ready for the interview!");
+    } else {
+      toast.error("Some device checks failed. Please ensure all devices are connected and permissions are granted.");
+    }
   };
 
   const allChecksSuccessful = Object.values(systemCheck).every(
@@ -96,6 +179,20 @@ const InterviewPrep = ({ onReady }: { onReady: () => void }) => {
           Let's make sure your device is ready for the interview
         </p>
       </div>
+
+      <div className={`${isChecking ? "block" : "hidden"} relative mb-6 rounded-lg overflow-hidden bg-black`}>
+        <video 
+          ref={videoRef} 
+          className="w-full h-48 object-cover"
+          muted
+          playsInline
+        ></video>
+        <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+          Camera Preview
+        </div>
+      </div>
+
+      <audio ref={audioRef} src={testAudioSrc} className="hidden"></audio>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="space-y-4">
