@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -52,6 +53,19 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+                vocalhire: {
+                    50: '#f2f7fd',
+                    100: '#e6f0fb',
+                    200: '#c7dff6',
+                    300: '#97c3ee',
+                    400: '#61a1e2',
+                    500: '#3c80d3',
+                    600: '#2864c4',
+                    700: '#224fa0',
+                    800: '#214384',
+                    900: '#1e396d',
+                    950: '#16264a',
+                },
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -84,12 +98,50 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+                'fade-in': {
+                    '0%': { opacity: '0' },
+                    '100%': { opacity: '1' },
+                },
+                'fade-in-up': {
+                    '0%': { opacity: '0', transform: 'translateY(20px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
+                },
+                'pulse-slow': {
+                    '0%, 100%': { opacity: '1' },
+                    '50%': { opacity: '0.8' },
+                },
+                'float': {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-10px)' },
+                },
+                'typing': {
+                    '0%': { width: '0%' },
+                    '100%': { width: '100%' }
+                },
+                'blink': {
+                    '0%, 100%': { borderRight: '2px solid transparent' },
+                    '50%': { borderRight: '2px solid currentColor' }
+                },
+                'spin-slow': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+                'fade-in': 'fade-in 0.6s ease-out',
+                'fade-in-up': 'fade-in-up 0.8s ease-out',
+                'pulse-slow': 'pulse-slow 3s ease-in-out infinite',
+                'float': 'float 5s ease-in-out infinite',
+                'typing': 'typing 3.5s steps(30, end), blink 0.75s step-end infinite',
+                'spin-slow': 'spin-slow 10s linear infinite'
+			},
+            fontFamily: {
+                'sans': ['Inter', 'sans-serif'],
+                'display': ['SF Pro Display', 'SF Pro', 'Inter', 'sans-serif'],
+            },
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
